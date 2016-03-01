@@ -38,7 +38,7 @@ $(document).ready(function($){
                 source:arr,
                 select: function(e, ui){
                     $('#autocomplete').val(ui.item.value);
-                    alert($('#autocomplete').val());
+                   
                     //Call hourly api to get data
                     hourlyapicall($('#autocomplete').val());
                  }
@@ -53,6 +53,18 @@ $(document).ready(function($){
 
         });
     }
+    //Check Array for already entered cities
+    function pushIfNew(obj) {
+  for (var i = 0; i < selected.length; i++) {
+    if (selected[i].name === obj) { 
+      return true;
+    }
+      
+  }
+  return false;
+}
+    
+    
     
     //Hour api function
     function hourlyapicall(name)
@@ -60,7 +72,8 @@ $(document).ready(function($){
         $("#selecteddiv").show();
          $("#selectedlist").html('');
         //Key for wundergraound api call
-        var key="3d8e6a855cf177b2"
+        var key="3d8e6a855cf177b2";
+        var pushcheck = false;
         $.getJSON("http://api.wunderground.com/api/"+key+"/hourly/q/CA/"+name+".json",function(resp){
             var tempcel = resp.hourly_forecast[0].temp.metric;
             var tempfar = resp.hourly_forecast[0].temp.english;
@@ -69,18 +82,17 @@ $(document).ready(function($){
             var totaltemp = tempcel+" &#8451; / "+tempfar+ " &#8457;";
             //Bind image corresponding to the condition returned from api
             var img = $("#showimg");
-            var imgsrc=bindimage(img,condition);
-            alert(imgsrc);
+            var imgsrc=bindimage(img,condition,time);
+            
+            if(!pushIfNew(name))
+            {
             selected.push({//Create array for selected cities
                 name: name, 
                 condition: condition,
                 src: imgsrc
             });
             localStorage.setItem('selected', JSON.stringify(selected));
-            alert(temp);
-            alert(condition);
-            alert(time);
-            
+            }
             $("#select").hide();
             $("#display_temp").show();
             $("#close_city").hide();
@@ -96,9 +108,44 @@ $(document).ready(function($){
             {
                  $("body").css("background-color","#06cdff");
             }
-            $.each(selected , function(i, val) { alert("Hi");
-                $("#selectedlist").append('<li class="horizontal-li"><a id="all'+i+'" href="javascript:void(0)"><img class="ul-image" src="'+selected[i].src+'"></a><br>'+selected[i].name+'<br>'+selected[i].condition+'</li>');
+            $.each(selected , function(i, val) {
+                $("#selectedlist").append('<li class="horizontal-li"><a data-name="'+selected[i].name+'" id="all'+i+'" href="javascript:void(0)"><img class="ul-image" src="'+selected[i].src+'"></a><br>'+selected[i].name+'<br>'+selected[i].condition+'</li>');
                 });
+            //bind click event handler
+            $("[id*=all]").on("click",function(){
+               
+                hourlyapicall($(this).data('name'));
+            });
+            //bind long click event handler
+            $("[id*=all]").bind( "taphold", function(){
+                if (confirm('Are you sure want to Delete ?')) {
+                 for (var n = 0 ; n < selected.length ; n++) {
+                    if (selected[n].name == $(this).data('name')) {
+                    var removedObject = selected.splice(n,1);
+                    removedObject = null;
+                    break;
+                        }
+                    }
+                    $.each(selected, function(i,val){
+                    
+                    hourlyapicall(selected[i].name);
+                        return false;
+                    });
+                    
+
+                }
+                
+                if(selected.length===0)
+                {
+                     $("#display_temp").hide();
+                    $("#select").show();
+                    $("#close_city").hide();
+                    $("#add_city").hide();
+                    $("#selecteddiv").hide();
+                }
+            });
+            
+            
         });
 
     
@@ -106,7 +153,7 @@ $(document).ready(function($){
     }
     
 //Function to get the images according to the option    
-    function bindimage(img,condition)
+    function bindimage(img,condition,time)
     {
          if (condition==="Mostly Cloudy")
            {
@@ -145,9 +192,19 @@ $(document).ready(function($){
            }
             else if(condition==="Clear")
            {
-               img.attr("src","images/sun_1x.png");
+               if (time>=19 || time<=7)
+               {
+                    img.attr("src","images/moon_1x.png");
+               return "images/moon_1x.png";
+               }
+               else
+               {
+                   img.attr("src","images/sun_1x.png");
                return "images/sun_1x.png";
+               }
+               
            }
+        
             else if (condition.indexOf("Thunderstorm") >= 0)
            {
                img.attr("src","images/thunderstorm_1x.png");
@@ -188,9 +245,8 @@ $(document).ready(function($){
         $("#selecteddiv").show();
             });  
     
-     $('#choose_city').on("click",function(){
-                
-            });  
+     
+  
     
 });
 

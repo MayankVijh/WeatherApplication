@@ -54,7 +54,7 @@ img{
     width: 220px;
 }
 
-a{
+.a-top{
     position: absolute;
     right:0px;
     top:0px;
@@ -79,4 +79,5 @@ a img{
      }
 .ul-image{
     width:50px;
+    position: relative;
 }
